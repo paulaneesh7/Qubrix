@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { ArrowLeft, ClipboardList, Layers, Wallet } from "lucide-react";
 import { CreditTransactionLedger } from "@/components/credits/transaction-ledger";
-import { ScreenLoader } from "@/components/ui/loader";
+import { CreditHistorySkeleton } from "@/components/ui/skeleton";
 import { prefetchCreditsData, useCreditsData } from "@/lib/credits-data";
 
 export default function CreditHistoryPage() {
   const { data, loading } = useCreditsData();
 
-  if (loading && !data) return <ScreenLoader />;
-  if (!data) return <ScreenLoader />;
+  if (loading && !data) return <CreditHistorySkeleton />;
+  if (!data) return <CreditHistorySkeleton />;
 
   const evalCost = data.costs?.evaluation ?? 10;
   const flashCost = data.costs?.flashcard_generation ?? 5;

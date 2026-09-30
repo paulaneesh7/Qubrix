@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader } from "@/components/ui/loader";
+import { RailSkeleton } from "@/components/ui/skeleton";
 import { MobileDrawer } from "@/components/ui/mobile-drawer";
 import { cn } from "@/lib/utils";
 
@@ -234,9 +234,7 @@ export function EvalWorkspace({
       <div className="qubrix-sidebar-scroll mt-2 min-h-0 flex-1 overflow-y-auto px-2 pb-3">
         {filtered.length === 0 ? (
           historyLoading ? (
-            <div className="grid place-items-center py-16">
-              <Loader size="sm" />
-            </div>
+            <RailSkeleton />
           ) : (
             <p className="px-2 py-8 text-xs leading-relaxed text-[var(--text-muted)]">No evaluations yet.</p>
           )

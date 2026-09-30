@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, ClipboardList, Flame, Layers, MessageCircle, PenLine, Target, Wallet } from "lucide-react";
 import { useMemo } from "react";
 import { CreditTransactionLedger } from "@/components/credits/transaction-ledger";
-import { ScreenLoader } from "@/components/ui/loader";
+import { CreditsPageSkeleton } from "@/components/ui/skeleton";
 import { prefetchCreditsData, useCreditsData } from "@/lib/credits-data";
 import { cn } from "@/lib/utils";
 
@@ -33,8 +33,8 @@ export default function CreditsPage() {
     return [...data.plans].sort((a, b) => a.price_inr - b.price_inr);
   }, [data]);
 
-  if (loading && !data) return <ScreenLoader />;
-  if (!data) return <ScreenLoader />;
+  if (loading && !data) return <CreditsPageSkeleton />;
+  if (!data) return <CreditsPageSkeleton />;
 
   const recent = data.transactions.slice(0, 5);
   const hasMore = data.transactions.length > 5;

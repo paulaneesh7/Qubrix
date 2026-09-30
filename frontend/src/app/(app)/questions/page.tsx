@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { ScreenLoader } from "@/components/ui/loader";
+import { CardListSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 
 type Q = {
@@ -33,7 +33,7 @@ export default function QuestionBankPage() {
   }, []);
 
   if (error) return <p>{error}</p>;
-  if (loading) return <ScreenLoader />;
+  if (loading) return <CardListSkeleton />;
 
   return (
     <div>
