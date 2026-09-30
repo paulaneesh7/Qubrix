@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { ScreenLoader } from "@/components/ui/loader";
+import { QuestionDetailSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 
 type Q = {
@@ -25,7 +25,7 @@ export default function QuestionPage() {
     api<Q>(`/api/questions/${params.id}`).then(setQ).catch((e) => toast.error(e.message));
   }, [params.id]);
 
-  if (!q) return <ScreenLoader />;
+  if (!q) return <QuestionDetailSkeleton />;
 
   return (
     <Card>

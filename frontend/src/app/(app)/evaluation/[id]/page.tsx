@@ -5,7 +5,7 @@ import { ArrowLeft, Check, Copy } from "lucide-react";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { EvalWorkspace, FOLLOW_UP_LIMIT, type ChatLine, type EvalHistoryItem } from "@/components/evaluation/workspace";
-import { ScreenLoader } from "@/components/ui/loader";
+import { EvalResultSkeleton } from "@/components/ui/skeleton";
 import { api, streamSse } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -127,7 +127,7 @@ export default function EvaluationResultPage() {
         chat={[]}
         onSend={() => undefined}
       >
-        <ScreenLoader />
+        <EvalResultSkeleton />
       </EvalWorkspace>
     );
   }

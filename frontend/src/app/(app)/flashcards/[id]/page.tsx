@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { DeckBoard } from "@/components/flashcards/deck-board";
 import { useFlashStudio } from "@/components/flashcards/use-flash-decks";
-import { ScreenLoader } from "@/components/ui/loader";
+import { DeckSkeleton } from "@/components/ui/skeleton";
 import { api, getToken } from "@/lib/api";
 import { getFlashDecks, removeFlashDeck, upsertFlashDeck } from "@/lib/flash-store";
 import type { FlashDeck } from "@/lib/flashcards";
@@ -67,7 +67,7 @@ export default function FlashDeckPage() {
   }
 
   if (!cached) {
-    return <ScreenLoader className="min-h-[50vh]" />;
+    return <DeckSkeleton />;
   }
 
   return (

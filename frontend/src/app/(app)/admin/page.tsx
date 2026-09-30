@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { ScreenLoader } from "@/components/ui/loader";
+import { StatGridSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 
 export default function AdminPage() {
@@ -14,7 +14,7 @@ export default function AdminPage() {
       .catch((e) => setError(e.message));
   }, []);
   if (error) return <p>{error}</p>;
-  if (!data) return <ScreenLoader />;
+  if (!data) return <StatGridSkeleton count={6} withList={false} />;
   return (
     <div>
       <h1 className="font-serif text-4xl">Admin</h1>

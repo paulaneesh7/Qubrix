@@ -7,6 +7,7 @@ import { useFlashJob } from "@/components/flashcards/use-flash-job";
 import { ago, type FlashDeck, HISTORY_KEY } from "@/lib/flashcards";
 import { flashJobLabel, takeReadyDeck } from "@/lib/flash-job";
 import { Loader } from "@/components/ui/loader";
+import { RailSkeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export function HistoryRail({
@@ -133,9 +134,7 @@ export function HistoryRail({
             ) : null}
             {filtered.length === 0 ? (
               loading ? (
-                <div className="grid place-items-center py-16">
-                  <Loader size="sm" />
-                </div>
+                <RailSkeleton />
               ) : (
                 <p className="px-2 py-8 text-xs leading-relaxed text-[var(--text-muted)]">
                   Decks you generate land here. Open one any time — each deck has its own link.

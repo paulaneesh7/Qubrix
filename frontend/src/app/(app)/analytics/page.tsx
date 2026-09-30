@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
-import { ScreenLoader } from "@/components/ui/loader";
+import { StatGridSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 
 export default function AnalyticsPage() {
@@ -10,7 +10,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
     api("/api/analytics").then((d) => setData(d as Record<string, unknown>));
   }, []);
-  if (!data) return <ScreenLoader />;
+  if (!data) return <StatGridSkeleton />;
   const subjects = (data.subject_accuracy as { topic_id: string; accuracy: number; attempted: number; trend: string }[]) || [];
   return (
     <div>

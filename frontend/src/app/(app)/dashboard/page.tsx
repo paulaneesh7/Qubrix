@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ArrowRight, ClipboardList, Layers } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/auth-provider";
-import { Loader } from "@/components/ui/loader";
+import { ChartSkeleton, Skeleton } from "@/components/ui/skeleton";
 import { Select } from "@/components/ui/select";
 import { api, cacheCredits, peekCredits } from "@/lib/api";
 
@@ -129,13 +129,19 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
-        {[
-          [evals.filter((e) => e.score != null).length, "Scored evaluations"],
-          [avg ?? "—", "Average / 10"],
-          [credits ?? "—", "Credits left"],
-        ].map(([value, label]) => (
-          <div key={String(label)} className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-4 py-3">
-            <p className="text-2xl font-semibold tracking-tight">{value}</p>
+        {(
+          [
+            [evals.filter((e) => e.score != null).length, "Scored evaluations", chartLoading],
+            [avg ?? "—", "Average / 10", chartLoading],
+            [credits ?? "—", "Credits left", credits == null],
+          ] as const
+        ).map(([value, label, pending]) => (
+          <div key={label} className="rounded-md border border-[var(--line)] bg-[var(--bg-elevated)] px-4 py-3">
+            {pending ? (
+              <Skeleton className="h-8 w-16" />
+            ) : (
+              <p className="text-2xl font-semibold tracking-tight">{value}</p>
+            )}
             <p className="mt-1 text-xs text-[var(--text-muted)]">{label}</p>
           </div>
         ))}
@@ -200,9 +206,7 @@ export default function DashboardPage() {
         </div>
 
         {chartLoading ? (
-          <div className="mt-8 grid place-items-center py-16">
-            <Loader size="sm" />
-          </div>
+          <ChartSkeleton />
         ) : scored.length === 0 ? (
           <div className="mt-8 py-10 text-center">
             <p className="text-sm text-[var(--text-muted)]">

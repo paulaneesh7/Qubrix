@@ -16,10 +16,3 @@ export function Loader({
   );
 }
 
-export function ScreenLoader({ className }: { className?: string }) {
-  return (
-    <div className={cn("grid flex-1 place-items-center py-16", className)}>
-      <Loader />
-    </div>
-  );
-}

@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader, ScreenLoader } from "@/components/ui/loader";
+import { Loader } from "@/components/ui/loader";
+import { CardListSkeleton } from "@/components/ui/skeleton";
 import { api } from "@/lib/api";
 
 type Mock = { id: string; title: string; duration_minutes: number; description: string; kind: string };
@@ -106,7 +107,7 @@ export default function MockTestsPage() {
       <p className="mt-2 text-sm text-[var(--muted)]">Full, subject, topic, and custom tests share one scoring engine.</p>
       <div className="mt-6 grid gap-3">
         {loading ? (
-          <ScreenLoader className="py-20" />
+          <CardListSkeleton header={false} />
         ) : (
           mocks.map((m) => (
             <Card key={m.id}>

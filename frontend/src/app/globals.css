@@ -153,6 +153,36 @@ button:disabled:has(.qubrix-loader) {
   border-width: 1.75px;
 }
 
+@keyframes qubrix-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
+.qubrix-skeleton {
+  display: block;
+  border-radius: 0.5rem;
+  background-color: var(--bg-muted);
+  background-image: linear-gradient(
+    90deg,
+    transparent 0%,
+    color-mix(in srgb, var(--bg-elevated) 78%, transparent) 45%,
+    transparent 100%
+  );
+  background-size: 220% 100%;
+  background-repeat: no-repeat;
+  animation: qubrix-shimmer 1.35s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qubrix-skeleton {
+    animation: none;
+  }
+}
+
 @keyframes qubrix-marquee {
   from {
     transform: translateX(0);
