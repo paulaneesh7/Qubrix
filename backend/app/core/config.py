@@ -59,6 +59,14 @@ class Settings(BaseSettings):
     langfuse_secret_key: str = ""
     langfuse_base_url: str = "https://cloud.langfuse.com"
 
+    # Dodo Payments — test_mode until live checkout is turned on
+    dodo_payments_api_key: str = ""
+    dodo_webhook_secret: str = ""
+    dodo_environment: Literal["test_mode", "live_mode"] = "test_mode"
+    dodo_product_starter: str = ""
+    dodo_product_focus: str = ""
+    dodo_product_intensive: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]

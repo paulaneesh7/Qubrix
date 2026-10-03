@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.credits import CreditCost, CreditTransaction
+from app.models.payment import Payment
 from app.models.progress import PurchasePlan, Recommendation, UserProgress
 from app.models.study import StudyTask
 from app.models.user import User
@@ -75,6 +76,9 @@ def credits(db: Session = Depends(get_db), user: User = Depends(get_current_user
         .limit(50)
     ).all()
     plans = db.scalars(select(PurchasePlan)).all()
+    payments = db.scalars(
+        select(Payment).where(Payment.user_id == user.id).order_by(Payment.created_at.desc()).limit(20)
+    ).all()
     balance = user.wallet.balance
     eval_cost = costs.get("evaluation", 10)
     flash_cost = costs.get("flashcard_generation", 5)
@@ -104,6 +108,18 @@ def credits(db: Session = Depends(get_db), user: User = Depends(get_current_user
                 "placeholder": p.is_placeholder,
             }
             for p in plans
+        ],
+        "payments": [
+            {
+                "id": str(row.id),
+                "plan_code": row.plan_code,
+                "price_inr": row.price_inr,
+                "credits": row.credits,
+                "status": str(row.status),
+                "failure_message": row.failure_message,
+                "created_at": row.created_at.isoformat(),
+            }
+            for row in payments
         ],
     }
 
