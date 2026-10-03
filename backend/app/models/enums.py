@@ -27,6 +27,14 @@ class Difficulty(StrEnum):
     HARD = "hard"
 
 
+class PaymentStatus(StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
 class CreditTransactionType(StrEnum):
     STARTER_CREDIT = "STARTER_CREDIT"
     PURCHASE = "PURCHASE"

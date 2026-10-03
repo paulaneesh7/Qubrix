@@ -4,6 +4,7 @@ from app.models.enums import (
     AttemptStatus,
     BookmarkTarget,
     CreditTransactionType,
+    PaymentStatus,
     Difficulty,
     EvaluationStatus,
     ExamMode,
@@ -20,6 +21,7 @@ from app.models.evaluation import ChatMessage, Evaluation, EvaluationChat, Evalu
 from app.models.exam import Exam, ExamPaper, ExamSection, Subject, Subtopic, Topic
 from app.models.flashcard import Flashcard, FlashcardDeck, FlashcardReview
 from app.models.mock import MockTest, MockTestAttempt, MockTestQuestion
+from app.models.payment import Payment
 from app.models.progress import Bookmark, Notification, PurchasePlan, Recommendation, Report, UserProgress
 from app.models.question import PracticeSession, Question, QuestionAttempt, QuestionOption
 from app.models.study import StudyPlan, StudyTask
@@ -60,6 +62,8 @@ __all__ = [
     "TutorThread",
     "PromptTemplate",
     "PurchasePlan",
+    "Payment",
+    "PaymentStatus",
     "UserRole",
     "QuestionType",
     "SourceType",

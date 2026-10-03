@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api, cacheCredits } from "@/lib/api";
 import type { CreditTx } from "@/lib/credits-ui";
 
@@ -13,6 +13,16 @@ export type CreditPlan = {
   placeholder?: boolean;
 };
 
+export type CreditPayment = {
+  id: string;
+  plan_code: string;
+  price_inr: number;
+  credits: number;
+  status: "pending" | "processing" | "succeeded" | "failed" | "cancelled" | string;
+  failure_message: string | null;
+  created_at: string;
+};
+
 export type CreditsData = {
   balance: number;
   estimated_evaluations: number;
@@ -20,6 +30,7 @@ export type CreditsData = {
   costs?: Record<string, number>;
   transactions: CreditTx[];
   plans: CreditPlan[];
+  payments?: CreditPayment[];
 };
 
 const TTL_MS = 45_000;
@@ -99,5 +110,18 @@ export function useCreditsData() {
     };
   }, []);
 
-  return { data, loading };
+  const reload = useCallback(() => {
+    return loadCreditsData({ force: true })
+      .then((next) => {
+        setData(next);
+        setLoading(false);
+        return next;
+      })
+      .catch((error: unknown) => {
+        setLoading(false);
+        throw error;
+      });
+  }, []);
+
+  return { data, loading, reload };
 }

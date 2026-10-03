@@ -2,10 +2,13 @@
 
 import Link from "next/link";
 import { ArrowRight, ClipboardList, Flame, Layers, MessageCircle, PenLine, Target, Wallet } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { CreditTransactionLedger } from "@/components/credits/transaction-ledger";
 import { CreditsPageSkeleton } from "@/components/ui/skeleton";
-import { prefetchCreditsData, useCreditsData } from "@/lib/credits-data";
+import { api } from "@/lib/api";
+import { prefetchCreditsData, useCreditsData, type CreditPayment } from "@/lib/credits-data";
+import { formatCreditTime } from "@/lib/credits-ui";
 import { cn } from "@/lib/utils";
 
 const PLAN_COPY: Record<string, { name: string; blurb: string }> = {
@@ -13,6 +16,84 @@ const PLAN_COPY: Record<string, { name: string; blurb: string }> = {
   popular: { name: "Focus", blurb: "Enough credits for a steady weekly loop." },
   pro: { name: "Intensive", blurb: "A full revision block before the exam." },
 };
+
+const PAYMENT_STATUS: Record<string, string> = {
+  pending: "Waiting for payment",
+  processing: "Processing",
+  succeeded: "Paid",
+  failed: "Failed",
+  cancelled: "Cancelled",
+};
+
+const CHECKOUT_KEY = "qubrix.checkout";
+const RETURN_KEYS = ["status", "payment_id", "email", "subscription_id", "license_key", "checkout"];
+
+type PendingCheckout = { paymentId: string; planCode: string };
+
+function readPendingCheckout(): PendingCheckout | null {
+  try {
+    const raw = sessionStorage.getItem(CHECKOUT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<PendingCheckout>;
+    if (!parsed.paymentId || !parsed.planCode) return null;
+    return { paymentId: parsed.paymentId, planCode: parsed.planCode };
+  } catch {
+    return null;
+  }
+}
+
+function rememberCheckout(pending: PendingCheckout) {
+  sessionStorage.setItem(CHECKOUT_KEY, JSON.stringify(pending));
+}
+
+function clearPendingCheckout() {
+  sessionStorage.removeItem(CHECKOUT_KEY);
+}
+
+function checkoutStatusFromUrl() {
+  const url = new URL(window.location.href);
+  const status = (url.searchParams.get("status") || "").toLowerCase();
+  const echoed = RETURN_KEYS.some((key) => url.searchParams.has(key));
+  if (echoed) {
+    for (const key of RETURN_KEYS) url.searchParams.delete(key);
+    const next = `${url.pathname}${url.search}${url.hash}`;
+    window.history.replaceState(null, "", next);
+  }
+  return { status, echoed };
+}
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function PaymentRow({ payment }: { payment: CreditPayment }) {
+  const name = PLAN_COPY[payment.plan_code]?.name ?? payment.plan_code;
+  const label = PAYMENT_STATUS[payment.status] ?? payment.status;
+  const paid = payment.status === "succeeded";
+  const failed = payment.status === "failed" || payment.status === "cancelled";
+  return (
+    <li className="flex items-center justify-between gap-4 py-3.5 first:pt-0 last:pb-0">
+      <div className="min-w-0">
+        <p className="text-sm font-medium">
+          {name} · ₹{payment.price_inr}
+        </p>
+        <p className="mt-0.5 text-xs text-[var(--text-muted)]">
+          {payment.credits.toLocaleString()} credits · {formatCreditTime(payment.created_at)}
+        </p>
+      </div>
+      <span
+        className={cn(
+          "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-medium",
+          paid && "bg-[var(--accent-soft)] text-[var(--accent)]",
+          failed && "bg-[var(--flash-soft)] text-[var(--flash)]",
+          !paid && !failed && "bg-[var(--bg-muted)] text-[var(--text-muted)]",
+        )}
+      >
+        {label}
+      </span>
+    </li>
+  );
+}
 
 function packValue(credits: number, evalCost: number, flashCost: number) {
   return {
@@ -23,7 +104,140 @@ function packValue(credits: number, evalCost: number, flashCost: number) {
 }
 
 export default function CreditsPage() {
-  const { data, loading } = useCreditsData();
+  const { data, loading, reload } = useCreditsData();
+  const [buying, setBuying] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+
+    async function watchPayment(paymentId: string) {
+      for (const delay of [2000, 4000, 8000]) {
+        await sleep(delay);
+        if (!active) return;
+        try {
+          const next = await reload();
+          const row = next.payments?.find((payment) => payment.id === paymentId);
+          if (row?.status === "succeeded") {
+            toast.success(`${row.credits.toLocaleString()} credits added to your account.`, {
+              id: "checkout-granted",
+            });
+            return;
+          }
+          if (row?.status === "failed") {
+            toast.error("Payment failed. You have not been charged.", { id: "checkout-return" });
+            return;
+          }
+          if (row?.status === "cancelled") {
+            toast.message("Payment cancelled. You have not been charged.", { id: "checkout-return" });
+            return;
+          }
+        } catch {
+          return;
+        }
+      }
+    }
+
+    async function settleCheckoutReturn() {
+      const pending = readPendingCheckout();
+      const { status, echoed } = checkoutStatusFromUrl();
+      if (!pending && !echoed) return;
+      // A crafted return URL cannot grant credits or show a payment result.
+      if (!pending) return;
+
+      clearPendingCheckout();
+      if (active) setBuying(null);
+
+      const succeeded = status === "succeeded" || status === "success" || status === "paid";
+      const failed = status === "failed" || status === "failure";
+      const cancelled = status === "cancelled" || status === "canceled";
+      const processing = status === "processing" || status === "pending";
+
+      if (!status) {
+        try {
+          await api("/api/credits/checkout/abandon", {
+            method: "POST",
+            body: JSON.stringify({ payment_id: pending.paymentId }),
+          });
+        } catch {
+          /* The row stays pending if this request fails. Credits are unchanged. */
+        }
+        if (!active) return;
+        toast.message("Checkout closed. No payment was taken.", { id: "checkout-return" });
+        void reload().catch(() => undefined);
+        return;
+      }
+
+      if (cancelled || failed) {
+        try {
+          await api("/api/credits/checkout/abandon", {
+            method: "POST",
+            body: JSON.stringify({ payment_id: pending.paymentId }),
+          });
+        } catch {
+          /* A webhook may already have recorded the final status. */
+        }
+        if (!active) return;
+        toast.error(
+          failed
+            ? "Payment failed. You have not been charged."
+            : "Payment cancelled. You have not been charged.",
+          { id: "checkout-return" },
+        );
+        void reload().catch(() => undefined);
+        return;
+      }
+
+      if (succeeded || processing) {
+        toast.message(
+          succeeded
+            ? "Payment received. Credits are added once the payment is confirmed."
+            : "Payment is processing. Credits are added when it completes.",
+          { id: "checkout-return" },
+        );
+        void watchPayment(pending.paymentId);
+        return;
+      }
+
+      toast.message("We could not confirm this payment. You have not been charged yet.", {
+        id: "checkout-return",
+      });
+      void reload().catch(() => undefined);
+    }
+
+    void settleCheckoutReturn();
+
+    function onPageShow() {
+      setBuying(null);
+      void settleCheckoutReturn();
+    }
+
+    window.addEventListener("pageshow", onPageShow);
+    return () => {
+      active = false;
+      window.removeEventListener("pageshow", onPageShow);
+    };
+  }, [reload]);
+
+  async function buy(planCode: string) {
+    setBuying(planCode);
+    try {
+      const result = await api<{ checkout_url: string; payment_id: string }>("/api/credits/checkout", {
+        method: "POST",
+        body: JSON.stringify({ plan_code: planCode }),
+      });
+      if (!result.checkout_url.startsWith("https://") || !result.payment_id) {
+        throw new Error("Checkout did not return a payment link.");
+      }
+      rememberCheckout({ paymentId: result.payment_id, planCode });
+      window.location.assign(result.checkout_url);
+    } catch (error) {
+      clearPendingCheckout();
+      toast.error(error instanceof Error ? error.message : "Could not open checkout", {
+        id: "checkout-open",
+      });
+      setBuying(null);
+    }
+  }
 
   const evalCost = data?.costs?.evaluation ?? 10;
   const flashCost = data?.costs?.flashcard_generation ?? 5;
@@ -120,7 +334,7 @@ export default function CreditsPage() {
         <div className="mb-4 sm:mb-5">
           <h2 className="text-lg font-semibold tracking-tight">Buy a pack</h2>
           <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Payments via DodoPayments coming soon — packs are ready to wire up.
+            Checkout opens in Dodo. Credits are added after the payment is confirmed.
           </p>
         </div>
 
@@ -192,7 +406,9 @@ export default function CreditsPage() {
                 <div className="mt-auto h-6" aria-hidden />
                 <button
                   type="button"
-                  disabled
+                  disabled={buying !== null}
+                  aria-busy={buying === plan.code}
+                  onClick={() => void buy(plan.code)}
                   className={cn(
                     "w-full rounded-md py-2.5 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-80",
                     accent && "bg-[var(--accent)] text-[var(--accent-text)]",
@@ -200,13 +416,27 @@ export default function CreditsPage() {
                     !accent && !warm && "border border-[var(--line)] bg-[var(--bg-elevated)] text-[var(--text)]",
                   )}
                 >
-                  Buy credits — soon
+                  {buying === plan.code ? "Opening checkout…" : `Buy ${title}`}
                 </button>
               </article>
             );
           })}
         </div>
       </section>
+
+      {(data.payments?.length ?? 0) > 0 && (
+        <section className="rounded-2xl border border-[var(--line)] bg-[var(--bg-elevated)] p-5 shadow-[var(--shadow)] sm:p-6">
+          <h2 className="text-lg font-semibold tracking-tight">Your payments</h2>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            Each checkout is saved on your account. Credits are added only when a payment is paid.
+          </p>
+          <ul className="mt-4 divide-y divide-[var(--line)]">
+            {data.payments?.map((payment) => (
+              <PaymentRow key={payment.id} payment={payment} />
+            ))}
+          </ul>
+        </section>
+      )}
 
       <section className="rounded-2xl border border-[var(--line)] bg-[var(--bg-elevated)] p-5 shadow-[var(--shadow)] sm:p-6">
         <h2 className="text-lg font-semibold tracking-tight">How credits are spent</h2>
